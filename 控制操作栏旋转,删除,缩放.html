@@ -107,7 +107,6 @@
           centerX = l + w / 2;
           centerY = t + h / 2;
         }
-        console.log(centerX, centerY);
 
         const { left, top, height, width, angle } = positionInfo;
         const degree = (Math.PI * angle) / 180;
@@ -195,16 +194,51 @@
           drawControl(downTarget);
           return;
         }
+
+        if (downTarget && mouseAction === "tl") {
+          const { left, top, width, height, angle } = downTarget;
+          const centerX = left + width / 2;
+          const centerY = top + height / 2;
+          const dx = offsetX - centerX;
+          const dy = offsetY - centerY;
+          // 核心
+          const angleDiff = (Math.atan2(dy, dx) * 180) / Math.PI;
+          downTarget.angle = angleDiff + 135;
+          render();
+          drawControl(downTarget);
+          return;
+        }
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
         if (target) {
           canvas.style.cursor = "move";
+          return;
         } else {
           canvas.style.cursor = null;
+        }
+
+        // 判断鼠标是否在控制icon内
+        if (downTarget) {
+          const { left, width, top, height } = downTarget;
+          const control = getTargetObject({ offsetX, offsetY }, controls, {
+            centerX: left + width / 2,
+            centerY: top + height / 2,
+          });
+          if (control) {
+            const pointerMap = {
+              br: "e-resize",
+              tr: "pointer",
+              tl: "pointer",
+            };
+            canvas.style.cursor = pointerMap[control.type];
+          } else {
+            canvas.style.cursor = null;
+          }
         }
       });
 
       let downTarget = null;
       let mouseAction = "init";
+
       canvas.addEventListener("mousedown", (e) => {
         const { offsetX, offsetY } = e;
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
@@ -216,8 +250,37 @@
           downTarget.diffY = offsetY - top;
           render();
           drawControl(target);
-        } else {
-          render();
+          return;
+        }
+
+        if (downTarget) {
+          const { left, width, top, height } = downTarget;
+          const control = getTargetObject({ offsetX, offsetY }, controls, {
+            centerX: left + width / 2,
+            centerY: top + height / 2,
+          });
+          if (control) {
+            const pointerMap = {
+              br: "e-resize",
+              tr: "pointer",
+              tl: "pointer",
+            };
+            const mouseActionMap = {
+              tl: "rotate",
+              tr: "delete",
+              br: "resize",
+            };
+            canvas.style.cursor = pointerMap[control.type];
+            mouseAction = control.type;
+            if (control.type === "tr") {
+              const index = positionInfos.indexOf(downTarget);
+              positionInfos.splice(index, 1);
+              render();
+            }
+          } else {
+            canvas.style.cursor = null;
+            render();
+          }
         }
       });
 
@@ -247,6 +310,32 @@
         ctx.drawImage(images[1], left + width, top - 20, 20, 20);
         ctx.drawImage(images[2], left + width, top + height, 20, 20);
         ctx.restore();
+        controls = [
+          {
+            left: left - 20,
+            top: top - 20,
+            height: 20,
+            width: 20,
+            angle,
+            type: "tl",
+          },
+          {
+            left: left + width,
+            top: top - 20,
+            height: 20,
+            width: 20,
+            angle,
+            type: "tr",
+          },
+          {
+            left: left + width,
+            top: top + width,
+            height: 20,
+            width: 20,
+            angle,
+            type: "br",
+          },
+        ];
       };
 
       const loadImages = async (srcs) => {
