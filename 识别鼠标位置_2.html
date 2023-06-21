@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style></style>
+  </head>
+
+  <body>
+    <canvas
+      id="comm"
+      width="400"
+      height="400"
+      style="border: 1px solid #cccccc"
+    ></canvas>
+    <button id="add">添加图片</button>
+    <button id="rotate">旋转</button>
+
+    <script>
+      const canvas = document.getElementById("comm");
+      const pixel = document.getElementById("pixel");
+      const ctx = canvas.getContext("2d");
+
+      let positionInfos = [];
+      const image = new Image();
+      image.src = "j.jpg";
+      image.onload = () => {
+        alert("图片加载完毕");
+      };
+
+      const add = document.getElementById("add");
+      const rotate = document.getElementById("rotate");
+
+      const render = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        positionInfos.forEach((positionInfo) => {
+          const { left, top, width, height, angle } = positionInfo;
+          const centerX = left + width / 2;
+          const centerY = top + height / 2;
+          ctx.save(); // 保存上次画笔的状态
+          ctx.translate(centerX, centerY); // 修改原点
+          ctx.rotate((angle * Math.PI) / 180); // 旋转
+          ctx.translate(-centerY, -centerY); // 恢复原点
+          ctx.drawImage(
+            image,
+            positionInfo.left,
+            positionInfo.top,
+            positionInfo.width,
+            positionInfo.height
+          );
+          ctx.restore();
+        });
+      };
+
+      add.onclick = () => {
+        const positionInfo = {
+          left: 100,
+          top: 100,
+          width: 200,
+          height: 200,
+          angle: 30,
+        };
+        positionInfos.push(positionInfo);
+        render();
+      };
+      rotate.onclick = () => {
+        const positionInfo = positionInfos[0];
+        positionInfo.angle++;
+        render();
+      };
+
+      // 获取绕着某点旋转degree弧度后的xy坐标
+      const getRotatedPoint = ({
+        centerX,
+        centerY,
+        originX,
+        originY,
+        degree,
+      }) => {
+        // 由于不是绕原点旋转需要先恢复原点 将点的坐标减去旋转中心点的坐标
+        const x0 = originX - centerX;
+        const y0 = originY - centerY;
+        // 应用旋转矩阵
+        const x1 = x0 * Math.cos(degree) - y0 * Math.sin(degree);
+        const y1 = x0 * Math.sin(degree) + y0 * Math.cos(degree);
+        //再恢复原点 将坐标平移到原始位置
+        const x2 = x1 + centerX;
+        const y2 = y1 + centerY;
+        return {
+          x: x2,
+          y: y2,
+        };
+      };
+
+      // 计算四点坐标
+      const getRotatedPoints = (positionInfo, centerPoint) => {
+        let centerX = 0;
+        let centerY = 0;
+        if (centerPoint) {
+          centerX = centerPoint.centerX;
+          centerY = centerPoint.centerY;
+        } else {
+          const { left: l, top: t, width: w, height: h } = positionInfo;
+          centerX = l + w / 2;
+          centerY = t + h / 2;
+        }
+        console.log(centerX, centerY);
+
+        const { left, top, height, width, angle } = positionInfo;
+        const degree = (Math.PI * angle) / 180;
+        const topLeft = { x: left, y: top };
+        const topRight = { x: left + width, y: top };
+        const bottomLeft = { x: left, y: top + height };
+        const bottomRight = { x: left + width, y: top + height };
+        return [
+          getRotatedPoint({
+            centerX,
+            centerY,
+            originX: topLeft.x,
+            originY: topLeft.y,
+            degree,
+          }),
+          getRotatedPoint({
+            centerX,
+            centerY,
+            originX: topRight.x,
+            originY: topRight.y,
+            degree,
+          }),
+          getRotatedPoint({
+            centerX,
+            centerY,
+            originX: bottomRight.x,
+            originY: bottomRight.y,
+            degree,
+          }),
+          getRotatedPoint({
+            centerX,
+            centerY,
+            originX: bottomLeft.x,
+            originY: bottomLeft.y,
+            degree,
+          }),
+        ];
+      };
+
+      // 射线法判断点是否位于图形内部
+      const pointInPolygon = (point, polygon) => {
+        let intersections = 0;
+        const length = polygon.length;
+        for (let i = 0; i < length; i++) {
+          const currentVertex = polygon[i];
+          const nextVertex = polygon[(i + 1) % length];
+          if (
+            point.y > Math.min(currentVertex.y, nextVertex.y) &&
+            point.y <= Math.max(currentVertex.y, nextVertex.y) &&
+            point.x <= Math.max(currentVertex.x, nextVertex.x) &&
+            currentVertex.y !== nextVertex.y
+          ) {
+            const xIntersection =
+              ((point.y - currentVertex.y) * (nextVertex.x - currentVertex.x)) /
+                (nextVertex.y - currentVertex.y) +
+              currentVertex.x;
+            if (currentVertex.x === nextVertex.x || point.x <= xIntersection) {
+              intersections++;
+            }
+          }
+        }
+        return intersections % 2 !== 0;
+      };
+
+      // 循环计算 每个控制点 / 图形
+      const getTargetObject = (
+        { offsetX, offsetY },
+        positionInfos,
+        centerPoint
+      ) => {
+        return positionInfos.find((positionInfo) => {
+          const points = getRotatedPoints(positionInfo, centerPoint);
+          const flag = pointInPolygon({ x: offsetX, y: offsetY }, points);
+          return flag;
+        });
+      };
+
+      canvas.addEventListener("mousemove", (e) => {
+        const { offsetX, offsetY } = e;
+        const target = getTargetObject({ offsetX, offsetY }, positionInfos);
+        if (target) {
+          canvas.style.cursor = "pointer";
+        } else {
+          canvas.style.cursor = null;
+        }
+      });
+    </script>
+  </body>
+</html>

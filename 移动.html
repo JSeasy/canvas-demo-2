@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style></style>
+  </head>
+
+  <body>
+    <canvas
+      id="comm"
+      width="400"
+      height="400"
+      style="border: 1px solid #cccccc"
+    ></canvas>
+    <button id="add">添加图片</button>
+    <button id="move">移动</button>
+
+    <script>
+      const canvas = document.getElementById("comm");
+      const pixel = document.getElementById("pixel");
+      const ctx = canvas.getContext("2d");
+
+      let positionInfos = [];
+      const image = new Image();
+      image.src = "j.jpg";
+      image.onload = () => {
+        alert("图片加载完毕");
+      };
+
+      const add = document.getElementById("add");
+      const move = document.getElementById("move");
+      const render = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        positionInfos.forEach((positionInfo) => {
+          ctx.drawImage(
+            image,
+            positionInfo.left,
+            positionInfo.top,
+            positionInfo.width,
+            positionInfo.height
+          );
+        });
+      };
+      add.onclick = () => {
+        const scale = Math.random();
+        const positionInfo = {
+          left: 100 * scale,
+          top: 100 * scale,
+          width: 200,
+          height: 200,
+        };
+        positionInfos.push(positionInfo);
+        render();
+      };
+
+      move.onclick = () => {
+        const positionInfo = positionInfos[0];
+        positionInfo.left++;
+        positionInfo.top++;
+        render();
+      };
+    </script>
+  </body>
+</html>
