@@ -42,7 +42,7 @@
           ctx.save(); // 保存上次画笔的状态
           ctx.translate(centerX, centerY); // 修改原点
           ctx.rotate((angle * Math.PI) / 180); // 旋转
-          ctx.translate(-centerY, -centerY); // 恢复原点
+          ctx.translate(-centerX, -centerY); // 恢复原点
           ctx.drawImage(
             image,
             positionInfo.left,
@@ -61,7 +61,7 @@
           top: 100 * scale,
           width: 200,
           height: 200,
-          angle: 30,
+          angle: 0,
         };
         positionInfos.push(positionInfo);
         render();
@@ -187,6 +187,14 @@
 
       canvas.addEventListener("mousemove", (e) => {
         const { offsetX, offsetY } = e;
+        if (downTarget && mouseAction === "move") {
+          const { left, top, width, height, diffX, diffY } = downTarget;
+          downTarget.left = offsetX - diffX;
+          downTarget.top = offsetY - diffY;
+          render();
+          drawControl(downTarget);
+          return;
+        }
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
         if (target) {
           canvas.style.cursor = "pointer";
@@ -195,16 +203,28 @@
         }
       });
 
+      let downTarget = null;
+      let mouseAction = "init";
       canvas.addEventListener("mousedown", (e) => {
         const { offsetX, offsetY } = e;
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
         if (target) {
+          downTarget = target;
+          const { left, top } = downTarget;
+          mouseAction = "move";
+          downTarget.diffX = offsetX - left;
+          downTarget.diffY = offsetY - top;
           render();
           drawControl(target);
         } else {
           render();
         }
       });
+
+      canvas.addEventListener("mouseup", () => {
+        mouseAction = "init";
+      });
+
       let controls = null;
       let images = [];
 
