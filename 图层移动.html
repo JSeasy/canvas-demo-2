@@ -197,14 +197,37 @@
         });
       };
 
+      const drawLine = () => {};
+      let attachedPoint = null;
       canvas.addEventListener("mousemove", (e) => {
         const { offsetX, offsetY } = e;
         if (downTarget && mouseAction === "move") {
           const { left, top, width, height, diffX, diffY } = downTarget;
           downTarget.left = offsetX - diffX;
           downTarget.top = offsetY - diffY;
+
+          const centerX = left + width / 2;
+          const centerY = top + height / 2;
+
+          if (centerX >= 190 && centerX <= 210) {
+            if (attachedPoint && Math.abs(attachedPoint.x - offsetX) >= 20) {
+              attachedPoint = null;
+            } else {
+              downTarget.left = 100;
+              !attachedPoint && (attachedPoint = { x: offsetX, y: offsetY });
+            }
+          }
+          if (centerY >= 195 && centerY <= 205) {
+            if (attachedPoint && Math.abs(attachedPoint.y - offsetY) >= 20) {
+              attachedPoint = null;
+            } else {
+              downTarget.top = 100;
+              !attachedPoint && (attachedPoint = { x: offsetX, y: offsetY });
+            }
+          }
           render();
           drawControl(downTarget);
+
           return;
         }
 

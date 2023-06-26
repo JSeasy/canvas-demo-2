@@ -40,9 +40,13 @@
       const image = new Image();
       image.src = "j.jpg";
       image.onload = () => {
-        alert("图片加载完毕");
+        alert("图片1加载完毕");
       };
-
+      const image2 = new Image();
+      image2.src = "b.jpg";
+      image2.onload = () => {
+        alert("图片2加载完毕");
+      };
       const add = document.getElementById("add");
       const rotate = document.getElementById("rotate");
 
@@ -56,6 +60,7 @@
           ctx.translate(centerX, centerY); // 修改原点
           ctx.rotate((angle * Math.PI) / 180); // 旋转
           ctx.translate(-centerX, -centerY); // 恢复原点
+          const r = Math.random();
           ctx.drawImage(
             image,
             positionInfo.left,
@@ -70,10 +75,10 @@
       add.onclick = () => {
         const scale = Math.random();
         const positionInfo = {
-          left: 100 * scale,
-          top: 100 * scale,
+          left: 0,
+          top: 0,
           width: 200,
-          height: 200,
+          height: 20,
           angle: 0,
         };
         positionInfos.push(positionInfo);
@@ -197,14 +202,34 @@
         });
       };
 
+      const drawLine = () => {};
+      let attachedPoint = null;
       canvas.addEventListener("mousemove", (e) => {
         const { offsetX, offsetY } = e;
         if (downTarget && mouseAction === "move") {
           const { left, top, width, height, diffX, diffY } = downTarget;
           downTarget.left = offsetX - diffX;
           downTarget.top = offsetY - diffY;
+
+          const centerX = left + width / 2;
+          const centerY = top + height / 2;
+
+          // 10 20 40 60
+          const attachedPoints = [10, 30, 50, 70, 90, 110, 130, 150, 170, 190];
+          attachedPoints.forEach((item) => {
+            if (centerY >= item - 5 && centerY <= item + 5) {
+              if (attachedPoint && Math.abs(attachedPoint.y - offsetY) >= 20) {
+                attachedPoint = null;
+              } else {
+                downTarget.top = item - 10 < 0 ? 0 : item - 10;
+                !attachedPoint && (attachedPoint = { x: offsetX, y: offsetY });
+              }
+            }
+          });
+
           render();
           drawControl(downTarget);
+
           return;
         }
 
@@ -297,8 +322,21 @@
         }
       });
 
-      canvas.addEventListener("mouseup", () => {
+      canvas.addEventListener("mouseup", (e) => {
         mouseAction = "init";
+        const { offsetX, offsetY } = e;
+        if (positionInfos) {
+          const { left, top } = downTarget;
+          const positionInfosFilter = positionInfos.filter((positionInfo) => {
+            return positionInfo.top < top;
+          });
+
+          positionInfosFilter.forEach((item, index) => {
+            item.top = index * 20;
+          });
+          downTarget.top = positionInfosFilter.length * 20;
+          render();
+        }
       });
 
       let controls = null;
@@ -315,7 +353,7 @@
         ctx.translate(centerX, centerY);
         ctx.rotate((angle * Math.PI) / 180);
         ctx.strokeStyle = "red"; // 设置边框颜色
-        ctx.lineWidth = 5; // 设置边框宽度
+        ctx.lineWidth = 1; // 设置边框宽度
         // 恢复原来的位置
         ctx.translate(-centerX, -centerY);
         ctx.strokeRect(left, top, width, height); // 绘制边框

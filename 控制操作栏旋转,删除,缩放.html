@@ -208,6 +208,25 @@
           drawControl(downTarget);
           return;
         }
+
+        if (downTarget && mouseAction === "br") {
+          const { left, top } = downTarget;
+          const { x, y } = centerPoint;
+          console.log(offsetX, offsetY);
+          // left + offsetX-left/2 = centerX
+          const l = x - (offsetX - left) / 2;
+          const t = y - (offsetY - top) / 2;
+          // top + offsetY-top/2 = centerY
+          downTarget.width = offsetX - left;
+          downTarget.height = offsetY - top;
+          // 核心
+          downTarget.left = l;
+          downTarget.top = t;
+          console.log(123);
+          render();
+          drawControl(downTarget);
+          return;
+        }
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
         if (target) {
           canvas.style.cursor = "move";
@@ -238,7 +257,9 @@
 
       let downTarget = null;
       let mouseAction = "init";
-
+      // 储存中心点
+      let centerPoint = null;
+      let downPoint = null;
       canvas.addEventListener("mousedown", (e) => {
         const { offsetX, offsetY } = e;
         const target = getTargetObject({ offsetX, offsetY }, positionInfos);
@@ -265,17 +286,22 @@
               tr: "pointer",
               tl: "pointer",
             };
-            const mouseActionMap = {
-              tl: "rotate",
-              tr: "delete",
-              br: "resize",
-            };
             canvas.style.cursor = pointerMap[control.type];
             mouseAction = control.type;
             if (control.type === "tr") {
               const index = positionInfos.indexOf(downTarget);
               positionInfos.splice(index, 1);
               render();
+            }
+            if (control.type === "br") {
+              centerPoint = {
+                x: left + width / 2,
+                y: top + height / 2,
+              };
+              downPoint = {
+                x: offsetX,
+                y: offsetY,
+              };
             }
           } else {
             canvas.style.cursor = null;
@@ -329,7 +355,7 @@
           },
           {
             left: left + width,
-            top: top + width,
+            top: top + height,
             height: 20,
             width: 20,
             angle,
