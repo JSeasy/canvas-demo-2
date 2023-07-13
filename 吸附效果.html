@@ -327,9 +327,11 @@
         const { offsetX, offsetY } = e;
         if (positionInfos) {
           const { left, top } = downTarget;
-          const positionInfosFilter = positionInfos.filter((positionInfo) => {
-            return positionInfo.top < top;
-          });
+          const positionInfosFilter = positionInfos
+            .sort((pre, next) => pre.top - next.top)
+            .filter((positionInfo) => {
+              return positionInfo.top < top;
+            });
 
           positionInfosFilter.forEach((item, index) => {
             item.top = index * 20;
